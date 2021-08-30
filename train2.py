@@ -14,7 +14,7 @@ import time
 
 from torch.utils.data import DataLoader
 from datasetloading import ArmLandmarksDataset, show_landmarks
-from model import MyModel, ResnetDeco, MyModel2
+from model import MyModel, ResnetDeco, MyModel2, EffiDeco, MyAlexNet
 from fastai.vision.all import *
 from fastai.metrics import error_rate
 #from fastbook import *
@@ -23,22 +23,22 @@ from skimage import io
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-learning_rate = 0.0001
+learning_rate = 0.00001
 batch_size = 1
-Epochs = 250
+Epochs = 200
 
 
 
 
-dataset = ArmLandmarksDataset(csv_file='armDataBackup.csv', root_dir='armDataset/', transform=transforms.Compose([
+dataset = ArmLandmarksDataset(csv_file='TemporaryDataset.csv', root_dir='armDataset/', transform=transforms.Compose([
                                                transforms.ToTensor()
                                            ]))
 
-train_set, test_set = torch.utils.data.random_split(dataset, [33, 7])
+train_set, test_set = torch.utils.data.random_split(dataset, [150, 24])
 train_loader = DataLoader(dataset=train_set, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(dataset=test_set, batch_size=batch_size, shuffle=False)
 
-model = MyModel2().to(config.DEVICE)
+#model = MyModel().to(config.DEVICE)
 
 
 
@@ -48,12 +48,19 @@ model = MyModel2().to(config.DEVICE)
 
 
 first_conv = nn.Conv2d(1, 3, 1)
-net = torchvision.models.resnet34(pretrained=True)
+net = torchvision.models.resnet34(pretrained=False)
+net2 = MyModel2()
+net4 = torchvision.models.alexnet(pretrained = True)
+net5 = MyAlexNet()
+#torch.hub.list('rwightman/gen-efficientnet-pytorch', force_reload=True)
+#net3 = torch.hub.load('rwightman/gen-efficientnet-pytorch', 'efficientnet_b0', pretrained=True)
 
 
-
-newmodel = torch.nn.Sequential(*(list(net.children())[:-3])) #[1, 1024, 6, 6]
+#newmodel = torch.nn.Sequential(*(list(net.children())[:-3])) #[1, 1024, 6, 6]
+#newmodel2 = torch.nn.Sequential(*(list(net3.children())[:-5]))#[1, 320, 3, 3]
+newmodel3 = torch.nn.Sequential(*(list(net4.children())[:-1]))#[1, 320, 3, 3]
 decoder = ResnetDeco()
+#decoder2 = EffiDeco()
 
 class FullResnet(nn.Module):
     def __init__(self, modelA, modelB):
@@ -71,12 +78,21 @@ class FullResnet(nn.Module):
         #print(out)
         return out
 
-truenet = FullResnet(newmodel, decoder).to(config.DEVICE)
+#truenet = FullResnet(newmodel, decoder).to(config.DEVICE)
+#truenet2 = FullResnet(newmodel2, decoder2).to(config.DEVICE)
+truenet3 = FullResnet(newmodel3, decoder).to(config.DEVICE)
+#model = FullResnet(newmodel, decoder).to(config.DEVICE)
+
+
+''' USTAW ODPOWIEDNI MODEL '''
+model = net5
+
 
 
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
+#criterion = nn.L1Loss()
 criterion = nn.MSELoss()
+
 
 '''
 tmp = np.random.rand(96, 96, 1)
@@ -85,16 +101,15 @@ tmp = torch.tensor(tmp, dtype=torch.float)
 tmp = first_conv(tmp[None, ...]) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 print(tmp.shape)
-tmp = newmodel(tmp)
+tmp = model(tmp)
 #tmp = decoder(tmp)
 print(tmp.shape)
-'''
 
-PATH = './mojmodel3.pth'
+'''
+PATH = './bestmodel2.pth'
 
 for epoch in range(Epochs):
     losses = []
-
     for i, data in enumerate(train_loader):
         image = data['image'].to(device=device)
         keypoints = data['landmarks'].to(device=device)
@@ -102,6 +117,7 @@ for epoch in range(Epochs):
         #image = first_conv(image[None, ...])
 
         scores = model(image)
+
 
 
 
@@ -131,7 +147,7 @@ for epoch in range(Epochs):
         optimizer.step()
 
     print(f'Epoch: {epoch}, Cost: {sum(losses)/len(losses)}')
-    if epoch == 249:
+    if epoch == 199:
         torch.save({
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
@@ -174,7 +190,7 @@ for j, data in enumerate(test_loader):
     scores = model(image)
     #image = image[0, :, :, :]
 
-    scores2 = scores.view(1, 3, 2)
+    #scores2 = scores.view(1, 3, 2)
 
     print(scores)
     print(data['landmarks'])
@@ -188,6 +204,3 @@ for j, data in enumerate(test_loader):
     plt.show()
     #time.sleep(5)
     #show_landmarks(image[0], scores)
-
-
-

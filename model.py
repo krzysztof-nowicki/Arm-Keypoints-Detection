@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision as tv
 
 
 class FaceKeypointModel(nn.Module):
@@ -62,35 +63,41 @@ class MyModel(nn.Module):
         self.dropout = nn.Dropout2d(p=0.2)
         self.fc1 = nn.Linear(2, 1024)
         self.fc2 = nn.Linear(1024, 3)
+        self.relu = nn.ReLU()
     def forward(self, x):
-        print("początek")
+        #print("początek")
         x = self.conv1(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool1(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.conv2(x)
-        print(x.shape)
+        x = self.relu(x)
+        #rint(x.shape)
         x = self.pool2(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.conv3(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool3(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.conv4(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool4(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.conv5(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool5(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.fc1(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.fc2(x)
-        print(x.shape)
+        #print(x.shape)
         x = x[:,0,:,:]
-        print(x.shape)
-        print("koniec")
+        #print(x.shape)
+        #print("koniec")
         #print(x.shape)
         out=x
         #print(out)
@@ -120,39 +127,45 @@ class MyModel2(nn.Module):
         # 6-1+1=6
         self.pool5 = nn.MaxPool2d(2, 2)
         #6/2=3
+        self.relu = nn.ReLU()
 
         self.dropout = nn.Dropout2d(p=0.2)
         self.fc1 = nn.Linear(3, 1024)
         self.fc2 = nn.Linear(1024, 2)
     def forward(self, x):
-        print("początek")
+        #print("początek")
         x = self.conv1(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool1(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.conv2(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool2(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.conv3(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool3(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.conv4(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool4(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.conv5(x)
-        print(x.shape)
+        x = self.relu(x)
+        #print(x.shape)
         x = self.pool5(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.fc1(x)
-        print(x.shape)
+        #print(x.shape)
         x = self.fc2(x)
-        print(x.shape)
+        #print(x.shape)
         x = x[:,0,:,:]
-        print(x.shape)
-        print("koniec")
+        #print(x.shape)
+        #print("koniec")
         #print(x.shape)
         out=x
         #print(out)
@@ -172,6 +185,70 @@ class ResnetDeco(nn.Module):
         x = self.conv1(x)
         x = self.fc1(x)
         x = self.fc2(x)
+        #print(x)
+        x = x[:,0,:,:]
+        #print(x.shape)
+        out=x
+        #print(out)
+        return out
+
+
+class EffiDeco(nn.Module):
+    def __init__(self):
+        super(EffiDeco, self).__init__()
+
+        self.conv1 = nn.Conv2d(320, 640, 1)
+        self.fc1 = nn.Linear(3, 1024)
+        self.fc2 = nn.Linear(1024, 2)
+
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        #print(x)
+        x = x[:,0,:,:]
+        #print(x.shape)
+        out=x
+        #print(out)
+        return out
+
+class MyAlexNet(nn.Module):
+    def __init__(self):
+        super(MyAlexNet, self).__init__()
+
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=96, kernel_size=11, stride=4),  # (b x 96 x 55 x 55)
+            nn.ReLU(),
+            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),  # section 3.3
+            nn.MaxPool2d(kernel_size=3, stride=2),  # (b x 96 x 27 x 27)
+            nn.Conv2d(96, 256, 5, padding=2),  # (b x 256 x 27 x 27)
+            nn.ReLU(),
+            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),
+            nn.MaxPool2d(kernel_size=3, stride=2),  # (b x 256 x 13 x 13)
+            nn.Conv2d(256, 384, 3, padding=1),  # (b x 384 x 13 x 13)
+            nn.ReLU(),
+            nn.Conv2d(384, 384, 3, padding=1),  # (b x 384 x 13 x 13)
+            nn.ReLU(),
+            nn.Conv2d(384, 256, 3, padding=1),  # (b x 256 x 13 x 13)
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2),  # (b x 256 x 6 x 6)
+            nn.Conv2d(256, 256, 3, padding=1),  # (b x 256 x  x )
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        self.conv1 = nn.Conv2d(256, 512, 1)
+        self.fc1 = nn.Linear(3, 512)
+        self.fc2 = nn.Linear(512, 2)
+
+
+    def forward(self, x):
+        x = F.interpolate(x, (227,227))
+        x = self.net(x)
+        x = self.conv1(x)
+        x = self.fc1(x)
+        x = self.fc2(x)
+        #print(x)
         x = x[:,0,:,:]
         #print(x.shape)
         out=x
