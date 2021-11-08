@@ -3,39 +3,6 @@ import torch.nn.functional as F
 import torchvision as tv
 
 
-class FaceKeypointModel(nn.Module):
-    def __init__(self):
-        super(FaceKeypointModel, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=5)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3)
-        self.fc1 = nn.Linear(128, 2)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.dropout = nn.Dropout2d(p=0.2)
-    def forward(self, x):
-
-         x = F.relu(self.conv1(x))
-
-         x = self.pool(x)
-
-         x = F.relu(self.conv2(x))
-
-         x = self.pool(x)
-
-         x = F.relu(self.conv3(x))
-
-         x = self.pool(x)
-
-         bs, _, _, _ = x.shape
-
-         x = F.adaptive_avg_pool2d(x, 1).reshape(bs, -1)
-
-         x = self.dropout(x)
-
-         out = self.fc1(x)
-
-         return out
-
 class MyModel(nn.Module):
     def __init__(self):
         super(MyModel, self).__init__()
@@ -197,9 +164,9 @@ class EffiDeco(nn.Module):
     def __init__(self):
         super(EffiDeco, self).__init__()
 
-        self.conv1 = nn.Conv2d(320, 640, 1)
-        self.fc1 = nn.Linear(3, 1024)
-        self.fc2 = nn.Linear(1024, 2)
+        self.conv1 = nn.Conv2d(1280, 2560, 1)
+        self.fc1 = nn.Linear(3, 2560)
+        self.fc2 = nn.Linear(2560, 2)
 
 
     def forward(self, x):
@@ -253,4 +220,21 @@ class MyAlexNet(nn.Module):
         #print(x.shape)
         out=x
         #print(out)
+        return out
+
+
+
+class MergedModels(nn.Module):
+    def __init__(self, modelA, modelB):
+        super(MergedModels, self).__init__()
+
+        self.modelA = modelA
+        self.modelB = modelB
+
+    def forward(self, x):
+        x = self.modelA(x)
+        x = self.modelB(x)
+        # print(x.shape)
+        out = x
+        # print(out)
         return out
