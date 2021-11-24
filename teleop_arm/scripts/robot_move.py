@@ -7,14 +7,20 @@ from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryG
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 # [2.9000264312563373, -1.899919021949695, -1.7500820091534157, 6.470402649938478e-05, 1.5000068492037473, 0.7499506414304014]
 
-[moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[2.9, -3.14, 0.0, 0.0, 1.5, 0.0]
-
+[moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[2.9, -3.14, -0.6, -1.57, 1.5, -1.57]
+global height_limiter
 import numpy as np
 from numpy import linalg
 
+import roslib
+import math
+import tf
+import geometry_msgs.msg
+import tf2_msgs.msg
+import turtlesim.srv
+
 
 import cmath
-import math
 from math import cos as cos
 from math import sin as sin
 from math import atan2 as atan2
@@ -22,7 +28,7 @@ from math import acos as acos
 from math import asin as asin
 from math import sqrt as sqrt
 from math import pi as pi
-
+'''
 global mat
 mat=np.matrix
 
@@ -78,17 +84,15 @@ def process_state(msg):
     th = np.matrix([[positions[0]], [positions[1]], [positions[2]], [positions[3]], [positions[4]], [positions[5]]])
     P = HTrans(th, c)
     print(P)
-
+'''
 
 class ArmSimpleTrajectory:
     def __init__(self):
     
-        global moveA1,moveA2,moveA3,moveA4,moveA5,moveA6
-        rospy.init_node('arm_simple_trajectory')
-        
-        # Set to True to move back to the starting configurations
-        reset = rospy.get_param('~reset', False)
-        
+        global moveA1,moveA2,moveA3,moveA4,moveA5,moveA6,height_limiter
+        #rospy.init_node('arm_simple_trajectory')
+        #moveA1-=0.1
+        moveA3+=0.3
         # Which joints define the arm?
         arm_joints = ['right_arm_shoulder_pan_joint',
                       'right_arm_shoulder_lift_joint',
@@ -97,14 +101,12 @@ class ArmSimpleTrajectory:
                       'right_arm_wrist_2_joint',
                       'right_arm_wrist_3_joint']
 
-        
-        if reset:
-            # Set the arm back to the resting position
-            arm_goal = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-        else:
-            # Set a goal configuration for the arm
-            arm_goal = [moveA1,moveA2,moveA3,moveA4,moveA5,moveA6]
+        if height_limiter<0.9 :
+            print(height_limiter)
+            print("potencjalne zderzenie, powrot do pozycji poczatkowej")
+            [moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[2.9, -3.14, -0.6, -1.57, 1.5, -1.57]
+        # Set a goal configuration for the arm
+        arm_goal = [moveA1,moveA2,moveA3,moveA4,moveA5,moveA6]
     
         # Connect to the right arm trajectory action server
         rospy.loginfo('Waiting for ur arm trajectory controller...')
@@ -126,7 +128,6 @@ class ArmSimpleTrajectory:
         arm_trajectory.points[0].accelerations = [0.0 for i in arm_joints]
         arm_trajectory.points[0].time_from_start = rospy.Duration(3)
         
-        # moveA2+=0.3
         
         # Send the trajectory to the arm action server
         rospy.loginfo('Moving the arm to goal position...')
@@ -149,11 +150,31 @@ class ArmSimpleTrajectory:
 
 
 if __name__ == '__main__':
+    rospy.init_node('tf_listener')
+    global height_limiter
+    listener = tf.TransformListener()
+    listener.waitForTransform('/base_link', '/right_arm_wrist_3_link', rospy.Time(), rospy.Duration(4.0))
     
-    
-    try:
-        while 1 :
-            rospy.Subscriber("/arm_controller/scaled_pos_joint_traj_controller/state", JointTrajectoryControllerState, process_state)
+    rate = rospy.Rate(10.0)
+    while not rospy.is_shutdown():
+        try:
+            
+            (trans,rot) = listener.lookupTransform('/base_link', '/right_arm_wrist_3_link', rospy.Time(0))
+            height_limiter=trans[2]
+            print(trans)
+            #print(rot)
             ArmSimpleTrajectory()
-    except rospy.ROSInterruptException:
+            #print("cos")
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            continue
+
+        
+
+        rate.sleep()    
+    
+    #try:
+     #   while 1 :
+            #rospy.Subscriber("/arm_controller/scaled_pos_joint_traj_controller/state", JointTrajectoryControllerState, process_state)
+            
+    #except rospy.ROSInterruptException:
         pass
