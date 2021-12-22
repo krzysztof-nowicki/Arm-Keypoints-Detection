@@ -8,6 +8,7 @@ import sys
 import cv2
 import glob
 
+
 import rospy
 import actionlib
 from cv_bridge import CvBridge
@@ -486,7 +487,7 @@ class ArmSimpleTrajectory:
         arm_goal_pub.publish(arm_goal_action)
 
         #rospy.loginfo('...done')
-        rospy.sleep(1)
+        #rospy.sleep(1)
 
 
 
@@ -543,7 +544,7 @@ if __name__ == '__main__':
         '''
 
         #rate.sleep()    
-    	
+    	#
         
         rospy.Subscriber("/cam1/image_raw", Image, process_image_cam1, queue_size=1, buff_size=2**24)
         rospy.Subscriber("/cam2/image_raw", Image, process_image_cam2, queue_size=1, buff_size=2**24)
@@ -588,8 +589,7 @@ if __name__ == '__main__':
             #plt.show()
             
             
-            
-            
+          
             angle1=acos(z1/sqrt((x1*x1)+(y1*y1)+(z1*z1)))
             if x1 > 0:
                 angle2=atan2(y1,x1)
@@ -614,7 +614,7 @@ if __name__ == '__main__':
             
         ArmSimpleTrajectory()    
         
-        rospy.sleep(1)
+        #rospy.sleep(1)
         
         
         
