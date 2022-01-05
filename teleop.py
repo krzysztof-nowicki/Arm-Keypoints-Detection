@@ -55,9 +55,20 @@ global points4
 global points5
 global points6
 
+global points7
+global points8
+
+global points9
+global points10
+
+global points11
+global points12
+
 global height_limiter
 
 global angle1, angle2, angle3
+
+global angle4, angle5, angle6
 
 global image_height
 
@@ -254,6 +265,12 @@ def process_image_cam1(msg):
     global points4
 
     global points6
+
+    global points8
+
+    global points10
+
+    global points12
     global image_height
     img = bridge.imgmsg_to_cv2(msg, "bgr8")
     
@@ -290,12 +307,24 @@ def process_image_cam1(msg):
     wrist_y = int(keypoints2[0, 0, 10, 0]* y)
     wrist_x = int(keypoints2[0, 0, 10, 1]* x)
 
+    hand1_y = int(keypoints2[0, 0, 5, 0]* y)
+    hand1_x = int( keypoints2[0, 0, 5, 1]* x)
+    hand2_y = int(keypoints2[0, 0, 7, 0]* y)
+    hand2_x = int(keypoints2[0, 0, 7, 1]* x)
+    hand3_y = int(keypoints2[0, 0, 9, 0]* y)
+    hand3_x = int(keypoints2[0, 0, 9, 1]* x)
+
     #keypoints = estimator(img)
 
     
     points2=np.array([shoulder_x,shoulder_y])
     points4=np.array([elbow_x,elbow_y])
     points6=np.array([wrist_x,wrist_y])
+
+    points8 = np.array([hand1_x, hand1_y])
+    points10 = np.array([hand2_x, hand2_y])
+    points12 = np.array([hand3_x, hand3_y])
+
     #points2=np.array([keypoints[0][2][0],keypoints[0][2][1]])
     #points4=np.array([keypoints[0][3][0],keypoints[0][3][1]])
     #points6=np.array([keypoints[0][4][0],keypoints[0][4][1]])
@@ -339,6 +368,12 @@ def process_image_cam2(msg):
 
 
     global points5
+    global points7
+
+    global points9
+
+
+    global points11
     img = bridge.imgmsg_to_cv2(msg, "bgr8")
     scale_percent = 44.5 # percent of original size
     width = int(img.shape[1] * scale_percent / 100)
@@ -375,12 +410,22 @@ def process_image_cam2(msg):
     wrist_y = int(keypoints2[0, 0, 10, 0]* y)
     wrist_x = int(keypoints2[0, 0, 10, 1]* x)
 
+    hand1_y = int(keypoints2[0, 0, 5, 0]* y)
+    hand1_x = int( keypoints2[0, 0, 5, 1]* x)
+    hand2_y = int(keypoints2[0, 0, 7, 0]* y)
+    hand2_x = int(keypoints2[0, 0, 7, 1]* x)
+    hand3_y = int(keypoints2[0, 0, 9, 0]* y)
+    hand3_x = int(keypoints2[0, 0, 9, 1]* x)
     #keypoints = estimator(img)
 
     
     points1=np.array([shoulder_x,shoulder_y])
     points3=np.array([elbow_x,elbow_y])
     points5=np.array([wrist_x,wrist_y])
+
+    points7 = np.array([hand1_x, hand1_y])
+    points9 = np.array([hand2_x, hand2_y])
+    points11 = np.array([hand3_x, hand3_y])
     #points1=np.array([keypoints[0][2][0],keypoints[0][2][1]])
     #points3=np.array([keypoints[0][3][0],keypoints[0][3][1]])
     #points5=np.array([keypoints[0][4][0],keypoints[0][4][1]])
@@ -507,8 +552,9 @@ if __name__ == '__main__':
     global tmp1, tmp2
     
     global angle1, angle2, angle3
-    
+    global angle4, angle5, angle6
     [angle1, angle2, angle3]=[0.0, 0.0, 0.0]
+    [angle4, angle5, angle6] = [0.0, 0.0, 0.0]
     
     global points1
     global points2
@@ -516,12 +562,26 @@ if __name__ == '__main__':
     global points4
     global points5
     global points6
+    global points7
+    global points8
+
+    global points9
+    global points10
+
+    global points11
+    global points12
     points6=np.array([0, 0])
     points5=np.array([0, 0])
     points1=np.array([0, 0])
     points2=np.array([0, 0])
     points3=np.array([0, 0])
     points4=np.array([0, 0])
+    points7=np.array([0, 0])
+    points8=np.array([0, 0])
+    points9=np.array([0, 0])
+    points10=np.array([0, 0])
+    points11=np.array([0, 0])
+    points12=np.array([0, 0])
     tmp1=0
     tmp2=0
     #global height_limiter
@@ -558,28 +618,32 @@ if __name__ == '__main__':
         
         if tmp1!=0 and tmp2!=0:
             print("TRIANGULACJA: ")
-            
-            print(points1)
-            print(points2)
-            print(points3)
-            print(points4)
-            print(points5)
-            print(points6)
+
             
             p_shoulder = DLT(P1, P2, points1, points2)
             p_elbow = DLT(P1, P2, points3, points4)
             p_wrist = DLT(P1, P2, points5, points6)
+            p_hand1 = DLT(P1, P2, points7, points8)
+            p_hand2 = DLT(P1, P2, points9, points10)
+            p_hand3 = DLT(P1, P2, points11, points12)
             
-            #p_shoulder[1]=image_height - p_shoulder[1]
-            #p_elbow[1]=image_height - p_elbow[1]
-            #p_wrist[1]=image_height - p_wrist[1]
-            
+
+
+
+            #POTENTIAL BUGS TO CHECK!!!
             x1=p_elbow[0]-p_shoulder[0] 
             y1=p_elbow[1]-p_shoulder[1] 
             z1=p_elbow[2]-p_shoulder[2]
             x2=p_wrist[0]-p_elbow[0] 
             y2=p_wrist[1]-p_elbow[1] 
             z2=p_wrist[2]-p_elbow[2]
+
+            x3=p_hand2[0]-p_hand1[0]
+            y3=p_hand2[1]-p_hand1[1]
+            z3=p_hand2[2]-p_hand1[2]
+            x4=p_hand3[0]-p_hand2[0]
+            y4=p_hand3[1]-p_hand2[1]
+            z4=p_hand3[2]-p_hand2[2]
             
             #fig = plt.figure(figsize=(4,4))
             #ax = fig.add_subplot(111, projection='3d')
@@ -602,10 +666,27 @@ if __name__ == '__main__':
             else :
             
                 angle3=-acos(z2/sqrt((x2*x2)+(y2*y2)+(z2*z2)))
-            
+
+            angle4 = acos(z1 / sqrt((x1 * x1) + (y1 * y1) + (z1 * z1)))
+            if x1 > 0:
+                angle5 = atan2(y1, x1)
+            elif x1 < 0:
+                angle5 = atan2(y1, x1) + pi
+            else:
+                angle5 = pi / 2
+            if p_wrist[1] <= p_elbow[1]:
+                angle6 = acos(z2 / sqrt((x2 * x2) + (y2 * y2) + (z2 * z2)))
+            else:
+
+                angle6 = -acos(z2 / sqrt((x2 * x2) + (y2 * y2) + (z2 * z2)))
+
+
             angle1=angle1/1.3
             angle2=angle2/1.3
             angle3=angle3/1.3
+            angle4=angle4/1.3
+            angle5=angle5/1.3
+            angle6=angle6/1.3
             print(angle1)
             print(angle2)
             print(angle3)
@@ -613,18 +694,8 @@ if __name__ == '__main__':
             tmp2=0
             
         ArmSimpleTrajectory()    
+
         
-        #rospy.sleep(1)
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
         
         
