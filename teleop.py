@@ -7,7 +7,7 @@ import rospy
 import sys
 import cv2
 import glob
-
+import time
 
 import rospy
 import actionlib
@@ -248,7 +248,8 @@ P2 = mtx2 @ RT2 #projection matrix for C2
 rospy.loginfo('Loading model')
 
 #estimator = BodyPoseEstimator(pretrained=True)
-model = hub.load('https://tfhub.dev/google/movenet/singlepose/thunder/3')
+model = hub.load('https://tfhub.dev/google/movenet/singlepose/thunder/4')
+#model = hub.load('https://tfhub.dev/google/movenet/singlepose/lightning/3')
 movenet = model.signatures['serving_default']
 
 rospy.loginfo('Model loaded')
@@ -462,14 +463,14 @@ def process_image_cam2(msg):
 #UR5 CONTROL
 
 
-[moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[2.9, -3.14, 0.0, -1.57, 1.5, -1.57]
-
+#[moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[2.9, -3.14, 0.0, -1.57, 1.5, -1.57]
+[moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 
 class ArmSimpleTrajectory:
     def __init__(self):
     
-        global moveA1,moveA2,moveA3,moveA4,moveA5,moveA6,height_limiter
+        global moveA1,moveA2,moveA3,moveA4,moveA5,moveA6,height_limiter, position_limiter_x, position_limiter_y
         global angle1, angle2, angle3
         # UR5 joint names
         arm_joints = ['right_arm_shoulder_pan_joint',
@@ -479,17 +480,40 @@ class ArmSimpleTrajectory:
                       'right_arm_wrist_2_joint',
                       'right_arm_wrist_3_joint']
 
-        #if height_limiter<0.9 :
-        #    print(height_limiter)
-        #    print("Danger! Tcp is too close to base! Returning to starting position...")
-        #    [angle1, angle2, angle3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.6, -1.57, 1.5, -1.57]
-        # Set a goal configuration for the arm
-
-           
-        
-        
-        
-        arm_goal = [angle1, angle2, angle3,moveA4,moveA5,moveA6]
+        if height_limiter<0.9 :
+            print(height_limiter)
+            print("Danger! Tcp is too close to base! Returning to starting position...")
+            [angle1, angle2, angle3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.6, -1.57, 1.5, -1.57]
+        if position_limiter_x < 0.1 and position_limiter_y > -0.4 :
+            print(height_limiter)
+            print("potencjalne zderzenie, powrot do pozycji poczatkowej")
+            [moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        order1 = moveA1+angle1-(1.3*pi)
+        order2 = angle2-(pi/2)
+        order3 = moveA3+angle3
+        if order1 > pi:
+            order1 = moveA1+angle1-(1.3*pi)-2*pi
+        elif order1 < -pi:
+            order1 = moveA1+angle1-(1.3*pi)+2*pi
+        else :
+            order1 = moveA1+angle1-(1.3*pi)
+        if order2 > pi:
+            order2 = angle2-(pi/2)-2*pi
+        elif order2 < -pi:
+            order2 = angle2-(pi/2)+2*pi
+        else :
+            order2 = angle2-(pi/2)
+        if order3 > pi:
+            order3 = angle3-2*pi
+        elif order3 < -pi:
+            order3 = angle3+2*pi
+        else :
+            order3 = angle3
+        if order1 > 3.5:
+            order1 = 3.5
+        if order1 < -1.25:
+            order1 = -1.25
+        arm_goal = [order1, order2, order3, moveA4+angle4, moveA5+angle5, moveA6+angle6]
     
         # Connect to the right arm trajectory action server
         #rospy.loginfo('Waiting for ur arm trajectory controller...')
@@ -532,7 +556,7 @@ class ArmSimpleTrajectory:
         arm_goal_pub.publish(arm_goal_action)
 
         #rospy.loginfo('...done')
-        #rospy.sleep(1)
+        rospy.sleep(1)
 
 
 
@@ -564,10 +588,8 @@ if __name__ == '__main__':
     global points6
     global points7
     global points8
-
     global points9
     global points10
-
     global points11
     global points12
     points6=np.array([0, 0])
@@ -584,32 +606,34 @@ if __name__ == '__main__':
     points12=np.array([0, 0])
     tmp1=0
     tmp2=0
-    #global height_limiter
+    global height_limiter, position_limiter_x, position_limiter_y
     
-    #listener = tf.TransformListener()
-    #listener.waitForTransform('/base_link', '/right_arm_wrist_3_link', rospy.Time(), rospy.Duration(1.0))
+    listener = tf.TransformListener()
+    listener.waitForTransform('/base_link', '/right_arm_wrist_3_link', rospy.Time(), rospy.Duration(1.0))
     
-    #rate = rospy.Rate(1.0)
+    rate = rospy.Rate(1.0)
     while not rospy.is_shutdown():
-        '''
+        time_0 = time.time()
         try:
             
             (trans,rot) = listener.lookupTransform('/base_link', '/right_arm_wrist_3_link', rospy.Time(0))
             height_limiter=trans[2]
+            position_limiter_x = trans[0]
+            position_limiter_y = trans[1]
+            print("Robot cartesian position:")
             print(trans)
 
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             continue
 
-        '''
 
-        #rate.sleep()    
-    	#
-        
+
+        rate.sleep()    
+        time_1 = time.time()
         rospy.Subscriber("/cam1/image_raw", Image, process_image_cam1, queue_size=1, buff_size=2**24)
         rospy.Subscriber("/cam2/image_raw", Image, process_image_cam2, queue_size=1, buff_size=2**24)
-        
-        print("sprawdzanie traingulacji")
+        time_2 = time.time()
+        print("Conditions for triangulation check:")
         print(tmp1)
         print(tmp2)
         
@@ -617,9 +641,7 @@ if __name__ == '__main__':
         
         
         if tmp1!=0 and tmp2!=0:
-            print("TRIANGULACJA: ")
 
-            
             p_shoulder = DLT(P1, P2, points1, points2)
             p_elbow = DLT(P1, P2, points3, points4)
             p_wrist = DLT(P1, P2, points5, points6)
@@ -654,48 +676,62 @@ if __name__ == '__main__':
             
             
           
-            angle1=acos(z1/sqrt((x1*x1)+(y1*y1)+(z1*z1)))
+            
+            if p_elbow[1]<=p_shoulder[1]:
+                angle1=asin(y1/sqrt((x1*x1)+(y1*y1)+(z1*z1)))
+            else :
+                angle1=-asin(y1/sqrt((x1*x1)+(y1*y1)+(z1*z1)))
             if x1 > 0:
-                angle2=atan2(y1,x1)
+                angle2=atan2(z1,x1)
             elif x1 < 0:
-                angle2=atan2(y1,x1)+pi
+                angle2=atan2(z1,x1)
             else :
                 angle2=pi/2
-            if p_wrist[1]<=p_elbow[1]:
-                angle3=acos(z2/sqrt((x2*x2)+(y2*y2)+(z2*z2)))
-            else :
-            
-                angle3=-acos(z2/sqrt((x2*x2)+(y2*y2)+(z2*z2)))
 
-            angle4 = acos(z1 / sqrt((x1 * x1) + (y1 * y1) + (z1 * z1)))
+            angle3=asin(y2/sqrt((x2*x2)+(y2*y2)+(z2*z2)))
+
+
+            angle4 = acos(z3 / sqrt((x3 * x3) + (y3 * y3) + (z3 * z3)))
             if x1 > 0:
-                angle5 = atan2(y1, x1)
+                angle5 = atan2(y3, x3)
             elif x1 < 0:
-                angle5 = atan2(y1, x1) + pi
+                angle5 = atan2(y3, x3) + pi
             else:
                 angle5 = pi / 2
-            if p_wrist[1] <= p_elbow[1]:
-                angle6 = acos(z2 / sqrt((x2 * x2) + (y2 * y2) + (z2 * z2)))
-            else:
 
-                angle6 = -acos(z2 / sqrt((x2 * x2) + (y2 * y2) + (z2 * z2)))
+            angle6 = acos(z4 / sqrt((x4 * x4) + (y4 * y4) + (z4 * z4)))
+
 
 
             angle1=angle1/1.3
             angle2=angle2/1.3
             angle3=angle3/1.3
-            angle4=angle4/1.3
-            angle5=angle5/1.3
-            angle6=angle6/1.3
+            angle4=angle4/1.8
+            angle5=angle5/1.8
+            angle6=angle6/1.8
+            print("Calculated angles for the move order:")
             print(angle1)
             print(angle2)
             print(angle3)
+            print(angle4)
+            print(angle5)
+            print(angle6)
             tmp1=0
             tmp2=0
             
         ArmSimpleTrajectory()    
-
+        print("Debug times:")
+        time_3 = time.time()
+        time_interval0 = time_1 - time_0
+        print("forward kinematics time:")
+        print(time_interval0)
         
-
+        time_interval1 = time_2 - time_1
         
+        print("subscribers time:")
+        print(time_interval1)
         
+        time_interval2 = time_3 - time_2
+        
+        print("robot move time:")
+        print(time_interval2)
