@@ -260,7 +260,9 @@ rospy.loginfo('Model loaded')
 #Callbacks containing images from cameras detecting keypoints on given image
 bridge = CvBridge()
 def process_image_cam1(msg):
-    global tmp1
+
+    time_movecam1 = time.time()
+    global tmp1, tmp3
     global points2
 
     global points4
@@ -358,11 +360,19 @@ def process_image_cam1(msg):
     image_message = bridge.cv2_to_imgmsg(image_dst, "bgr8")
     #print("publikacja cam1")
     image_pub_cam1.publish(image_message)
+    image_message = 0
     if points2[0]!=0.0 and points2[1]!=0.0 and points4[0]!=0.0 and points4[1]!=0.0 and points6[0]!=0.0 and points6[1]!=0.0:
     	tmp1 = 1
+    time_movecam11 = time.time()
+    time_interval_cam1 = time_movecam11 - time_movecam1
+    print("camera 1 feedback time:")
+    print(time_interval_cam1)
+    tmp3=1
 
 def process_image_cam2(msg):
-    global tmp2
+
+    time_movecam2 = time.time()
+    global tmp2, tmp4
     global points1
 
     global points3
@@ -455,23 +465,26 @@ def process_image_cam2(msg):
     image_message = bridge.cv2_to_imgmsg(image_dst, "bgr8")
     #print("publikacja cam2")
     image_pub_cam2.publish(image_message)
+    image_message = 0
     if points1[0]!=0.0 and points1[1]!=0.0 and points3[0]!=0.0 and points3[1]!=0.0 and points5[0]!=0.0 and points5[1]!=0.0:
     	tmp2=1
-
-    
-  
+    time_movecam22 = time.time()
+    time_interval_cam2 = time_movecam22 - time_movecam2
+    print("camera 2 feedback time:")
+    print(time_interval_cam2)
+    tmp4=1
 #UR5 CONTROL
 
 
 #[moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[2.9, -3.14, 0.0, -1.57, 1.5, -1.57]
-[moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+[moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[0.0, pi/2, 0.0, 0.0, 0.0, 0.0]
 
 
 class ArmSimpleTrajectory:
     def __init__(self):
-    
+        time_move1 = time.time()
         global moveA1,moveA2,moveA3,moveA4,moveA5,moveA6,height_limiter, position_limiter_x, position_limiter_y
-        global angle1, angle2, angle3
+        global angle1, angle2, angle3, angle4, angle5, angle6
         # UR5 joint names
         arm_joints = ['right_arm_shoulder_pan_joint',
                       'right_arm_shoulder_lift_joint',
@@ -481,28 +494,26 @@ class ArmSimpleTrajectory:
                       'right_arm_wrist_3_joint']
 
         if height_limiter<0.9 :
-            print(height_limiter)
             print("Danger! Tcp is too close to base! Returning to starting position...")
-            [angle1, angle2, angle3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.6, -1.57, 1.5, -1.57]
+            [angle1, angle2, angle3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.0, -1.57, 1.5, -1.57]
         if position_limiter_x < 0.1 and position_limiter_y > -0.4 :
-            print(height_limiter)
-            print("potencjalne zderzenie, powrot do pozycji poczatkowej")
-            [moveA1, moveA2,moveA3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        order1 = moveA1+angle1-(1.3*pi)
-        order2 = angle2-(pi/2)
+            print("Danger! Tcp is too close to base! Returning to starting position...")
+            [angle1, angle2,angle3,moveA4,moveA5,moveA6]=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        order1 = moveA1+angle1
+        order2 = angle2
         order3 = moveA3+angle3
         if order1 > pi:
-            order1 = moveA1+angle1-(1.3*pi)-2*pi
+            order1 = moveA1+angle1-2*pi
         elif order1 < -pi:
-            order1 = moveA1+angle1-(1.3*pi)+2*pi
+            order1 = moveA1+angle1+2*pi
         else :
-            order1 = moveA1+angle1-(1.3*pi)
+            order1 = moveA1+angle1
         if order2 > pi:
-            order2 = angle2-(pi/2)-2*pi
+            order2 = angle2-2*pi
         elif order2 < -pi:
-            order2 = angle2-(pi/2)+2*pi
+            order2 = angle2+2*pi
         else :
-            order2 = angle2-(pi/2)
+            order2 = angle2
         if order3 > pi:
             order3 = angle3-2*pi
         elif order3 < -pi:
@@ -551,12 +562,17 @@ class ArmSimpleTrajectory:
         arm_goal_action = FollowJointTrajectoryActionGoal()
         
         arm_goal_action.goal = arm_goal
-
+        time_move2 = time.time()
         rospy.loginfo("Moving an arm now")
         arm_goal_pub.publish(arm_goal_action)
-
-        #rospy.loginfo('...done')
-        rospy.sleep(1)
+        #rospy.sleep(1)
+        time_move3 = time.time()
+        time_interval_move1 = time_move2 - time_move1
+        print("create order time:")
+        print(time_interval_move1)
+        time_interval_move2 = time_move3 - time_move2
+        print("send order time:")
+        print(time_interval_move2)
 
 
 
@@ -565,7 +581,7 @@ itmp=0
 
 image_pub_cam1 = rospy.Publisher("keypoints_image_cam1",Image, queue_size=1)
 
-image_pub_cam2 = rospy.Publisher("keypoints_image_cam2",Image, queue_size=1)
+image_pub_cam2 = rospy.Publisher("keypoints_image_cam2",Image, queue_size=1
 
 arm_goal_pub = rospy.Publisher("/arm_controller/scaled_pos_joint_traj_controller/follow_joint_trajectory/goal",FollowJointTrajectoryActionGoal ,queue_size=1)
 rospy.init_node('teleop_arm')
@@ -573,7 +589,7 @@ rospy.loginfo('teleop_arm node started')
 
 
 if __name__ == '__main__':
-    global tmp1, tmp2
+    global tmp1, tmp2, tmp3, tmp4
     
     global angle1, angle2, angle3
     global angle4, angle5, angle6
@@ -606,6 +622,8 @@ if __name__ == '__main__':
     points12=np.array([0, 0])
     tmp1=0
     tmp2=0
+    tmp3=1
+    tmp4=1
     global height_limiter, position_limiter_x, position_limiter_y
     
     listener = tf.TransformListener()
@@ -628,11 +646,18 @@ if __name__ == '__main__':
 
 
 
-        rate.sleep()    
+        #rate.sleep()    
         time_1 = time.time()
+
         rospy.Subscriber("/cam1/image_raw", Image, process_image_cam1, queue_size=1, buff_size=2**24)
+
         rospy.Subscriber("/cam2/image_raw", Image, process_image_cam2, queue_size=1, buff_size=2**24)
+        
         time_2 = time.time()
+        rospy.wait_for_message("keypoints_image_cam1",Image)
+        rospy.wait_for_message("keypoints_image_cam1",Image)
+        rospy.rostime.wallsleep(0.5)
+        #rospy.on_shutdown()
         print("Conditions for triangulation check:")
         print(tmp1)
         print(tmp2)
@@ -675,12 +700,9 @@ if __name__ == '__main__':
             #plt.show()
             
             
-          
-            
-            if p_elbow[1]<=p_shoulder[1]:
-                angle1=asin(y1/sqrt((x1*x1)+(y1*y1)+(z1*z1)))
-            else :
-                angle1=-asin(y1/sqrt((x1*x1)+(y1*y1)+(z1*z1)))
+
+            angle1=asin(y1/sqrt((x1*x1)+(y1*y1)+(z1*z1)))
+
             if x1 > 0:
                 angle2=atan2(z1,x1)
             elif x1 < 0:
@@ -691,7 +713,7 @@ if __name__ == '__main__':
             angle3=asin(y2/sqrt((x2*x2)+(y2*y2)+(z2*z2)))
 
 
-            angle4 = acos(z3 / sqrt((x3 * x3) + (y3 * y3) + (z3 * z3)))
+            angle4 = asin(z3 / sqrt((x3 * x3) + (y3 * y3) + (z3 * z3)))
             if x1 > 0:
                 angle5 = atan2(y3, x3)
             elif x1 < 0:
@@ -699,16 +721,16 @@ if __name__ == '__main__':
             else:
                 angle5 = pi / 2
 
-            angle6 = acos(z4 / sqrt((x4 * x4) + (y4 * y4) + (z4 * z4)))
+            angle6 = asin(z4 / sqrt((x4 * x4) + (y4 * y4) + (z4 * z4)))
 
 
 
-            angle1=angle1/1.3
-            angle2=angle2/1.3
-            angle3=angle3/1.3
-            angle4=angle4/1.8
-            angle5=angle5/1.8
-            angle6=angle6/1.8
+            angle1=-angle1
+            angle2=angle2
+            angle3=-angle3
+            angle4=angle4
+            angle5=angle5/1.5
+            angle6=angle6
             print("Calculated angles for the move order:")
             print(angle1)
             print(angle2)
@@ -718,10 +740,10 @@ if __name__ == '__main__':
             print(angle6)
             tmp1=0
             tmp2=0
-            
+        time_3 = time.time()  
         ArmSimpleTrajectory()    
         print("Debug times:")
-        time_3 = time.time()
+        time_4 = time.time()
         time_interval0 = time_1 - time_0
         print("forward kinematics time:")
         print(time_interval0)
@@ -733,5 +755,11 @@ if __name__ == '__main__':
         
         time_interval2 = time_3 - time_2
         
-        print("robot move time:")
+        print("triangulation time:")
         print(time_interval2)
+        
+        time_interval3 = time_4 - time_3
+        
+        print("robot move time:")
+        print(time_interval3)
+
