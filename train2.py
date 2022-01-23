@@ -25,11 +25,11 @@ def show_landmarks(image, landmarks):
 
 #SET ALL PARAMETERS
 learning_rate = 0.0001
-batch_size = 1
-Epochs = 100
-dataset_name ="smaller_mpii_mine_armdataset.csv"
+batch_size = 64
+Epochs = 10
+dataset_name ="mpii_armdataset.csv"
 dataset_root_dir ="armDataset/"
-dataset_split = [1000, 20, 98] #Has to be accurate to numbers in csv file
+dataset_split = [17010, 20, 145] #Has to be accurate to numbers in csv file
 PATH = './mysmallerresnetmodel.pth' #Name for saving weights of a model
 
 

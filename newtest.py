@@ -1,10 +1,35 @@
 import torch
+import torch.nn as nn
+import torchvision
 import numpy as np
 import matplotlib.pyplot as plt
 
-from model import MyAlexNet
+from model import MyAlexNet, ResnetDeco
 from skimage import io
 
+
+class FullResnet(nn.Module):
+    def __init__(self, modelA, modelB):
+        super(FullResnet, self).__init__()
+
+        self.modelA = modelA
+        self.modelB = modelB
+
+
+    def forward(self, x):
+        x = self.modelA(x)
+        x = self.modelB(x)
+        #print(x.shape)
+        out=x
+        #print(out)
+        return out
+
+
+net = torchvision.models.resnet34(pretrained=False)
+
+newmodel = torch.nn.Sequential(*(list(net.children())[:-3])) #[1, 1024, 6, 6]
+decoder = ResnetDeco()
+truenet = FullResnet(newmodel, decoder)
 
 net5 = MyAlexNet()
 model = net5
