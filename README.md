@@ -1,4 +1,5 @@
 # Arm-Keypoints-Detection
+Teleoperation of a UR5 robot arm using 2 RGB cameras and neural network model
 # Models:
 link to models saved states:<br>
 https://drive.google.com/drive/folders/14hIE8WW47MnAosOzoWhQTr09Qee44_xH?usp=sharing
